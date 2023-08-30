@@ -28,7 +28,7 @@ struct Config {
 }
 
 impl App {
-    pub fn new() -> Result<App, RRMError> {
+    pub fn create() -> Result<App, RRMError> {
         let cmd_args = CmdArgs::parse();
         let settings_path = match cmd_args.config_path {
             Some(p) => PathBuf::from(p),
@@ -54,10 +54,34 @@ impl App {
         trace!("Config file content: {}", &file_contents);
         let config: Config = toml::from_str(&file_contents).map_err(RRMError::SettingsFileParse)?;
         trace!("trash path: {}", &config.trash_path);
+
         Ok(App {
             files: Vec::new(),
             trash_path: PathBuf::from(config.trash_path),  // Make this configurable
         })
+    }
+
+    /// Creates the trash bin directory if it does not exists
+    /// If it exists but is not a directory Error is returned
+    /// If it exists and is a directory nothing will be done
+    pub fn create_trash(&self) -> Result<(), RRMError> {
+
+        /* Find out if trash exists or not */
+        match self.trash_path.try_exists() {
+            Err(_) => Err(RRMError::TrashNotVerified),
+            Ok(true) => {
+                if self.trash_path.is_symlink() || self.trash_path.is_file() {
+                    Err(RRMError::TrashNotDir)
+                } else {
+                    Ok(())
+                }
+            },
+            Ok(false) => {
+                trace!("Trash does not exists, create trashbin");
+                fs::create_dir_all(&self.trash_path)?;
+                Ok(())
+            },
+        }
     }
 }
 

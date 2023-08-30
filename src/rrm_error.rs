@@ -7,14 +7,20 @@ pub enum RRMError {
     #[error("Failed to read settings path")]
     ReadSettingsPath,
 
-    #[error("Failed to read settings file")]
-    ReadSettingsFile(#[from] io::Error),
+    #[error("IO Error")]
+    IOError(#[from] io::Error),
 
     #[error("No settings file found, will go with default settings")]
     NoSettingsFileFound,
 
     #[error("Failed to parse settings file")]
     SettingsFileParse(toml::de::Error),
+
+    #[error("Trash is not a directory")]
+    TrashNotDir,
+
+    #[error("Failed to verify path")]
+    TrashNotVerified,
 }
 
 impl Debug for RRMError {

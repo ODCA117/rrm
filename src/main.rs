@@ -3,19 +3,16 @@ mod app;
 
 use app::App;
 use std::{path::PathBuf, fs};
-use log::{trace, error};
+use log::{trace, info, error};
 use rrm_error::RRMError;
 
 fn main() -> Result<(), RRMError>{
     env_logger::init();
 
-    trace!("parse command line arguments");
-    let app = App::new()?;
+    let app = App::create()?;
+    app.create_trash()?;
 
-    // TODO, move this to the application init??
-    //fs::create_dir_all(PathBuf::from(&app.trash_path));
-
-    trace!("Move files {:?} to trashbin", &app.files);
+    info!("Move files {:?} to trashbin", &app.files);
 
     // If link/dir/file is in a path, it will be move to the root of the trashbin.
     // Path will not be copied.
@@ -27,7 +24,7 @@ fn main() -> Result<(), RRMError>{
             // Current behvaior, Removes the link which will breake it
             // If the file which the link is linking to also is removed and keep the same
             // relative path from the link the link will still work.
-            let mut new_path = PathBuf::from(app.trash_path.clone());
+            let mut new_path = PathBuf::from(&app.trash_path.clone());
             let file_name = f.file_name().unwrap();
             new_path.push(file_name);
 
