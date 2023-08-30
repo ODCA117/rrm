@@ -1,12 +1,20 @@
 //use core::fmt::Debug
-use std::fmt::Debug;
+use std::{fmt::Debug, io};
+use toml;
 
 #[derive(thiserror::Error)]
 pub enum RRMError {
-    #[error("Failed parsing command line arguments")]
-    Cmd,
-    #[error("Failed reading file name")]
-    ReadFileName,
+    #[error("Failed to read settings path")]
+    ReadSettingsPath,
+
+    #[error("Failed to read settings file")]
+    ReadSettingsFile(#[from] io::Error),
+
+    #[error("No settings file found, will go with default settings")]
+    NoSettingsFileFound,
+
+    #[error("Failed to parse settings file")]
+    SettingsFileParse(toml::de::Error),
 }
 
 impl Debug for RRMError {

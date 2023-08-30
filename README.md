@@ -5,7 +5,7 @@ A more safe alternative to rm. Highly inspired by [rip](https://github.com/nivek
 
 ## Todo
 
-[] Be able to move files.
+[x] Be able to move files.
 [] Implement settings.
 [] Store list of previous commands.
 [] Store meta data on removed files.
