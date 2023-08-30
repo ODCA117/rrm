@@ -51,12 +51,13 @@ impl App {
         }
 
         let file_contents = fs::read_to_string(&settings_path)?;
-        let settings: Config = toml::from_str(&file_contents).map_err(RRMError::SettingsFileParse)?;
+        trace!("Config file content: {}", &file_contents);
+        let config: Config = toml::from_str(&file_contents).map_err(RRMError::SettingsFileParse)?;
+        trace!("trash path: {}", &config.trash_path);
         Ok(App {
             files: Vec::new(),
-            trash_path: PathBuf::from(settings.trash_path),  // Make this configurable
+            trash_path: PathBuf::from(config.trash_path),  // Make this configurable
         })
     }
 }
-
 

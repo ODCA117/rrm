@@ -13,7 +13,7 @@ fn main() -> Result<(), RRMError>{
     let app = App::new()?;
 
     // TODO, move this to the application init??
-    fs::create_dir_all(PathBuf::from(&app.trash_path));
+    //fs::create_dir_all(PathBuf::from(&app.trash_path));
 
     trace!("Move files {:?} to trashbin", &app.files);
 
@@ -68,6 +68,5 @@ fn main() -> Result<(), RRMError>{
             error!("The path is not pointing to anythin");
         }
     }
-
     Ok(())
 }
