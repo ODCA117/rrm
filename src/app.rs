@@ -12,19 +12,13 @@ const CONFIG_FILE: &str = "rrm_settings.toml";
 #[command(author, version, about, long_about = None)]
 struct CmdArgs {
     files: Vec<String>,
-    config_path: String,
-}
 
-impl CmdArgs {
-    pub fn parse_cmd_args() -> Result<CmdArgs, RRMError> {
-        let cmd_args = CmdArgs::parse();
-        Ok(cmd_args)
-    }
+    #[arg(short, long)]
+    config_path: Option<String>,
 }
 
 pub struct App {
     pub files: Vec<PathBuf>,
-    settings_path: PathBuf, // Make this a command line argument
     pub trash_path: PathBuf,
 }
 
@@ -35,16 +29,21 @@ struct Config {
 
 impl App {
     pub fn new() -> Result<App, RRMError> {
-        /* try to read the default config path, may seem a bit to OS independent, make it more
-        * difficult to test */
-        // Linux:   /home/Alice/.config/rrm
-        // Windows: C:\Users\Alice\AppData\Roaming\rrm\rrm
-        // macOS:   /Users/Alice/Library/Application Support/ODCA.rrm
-        let proj_dirs = ProjectDirs::from("", "ODCA",  "rrm").ok_or(RRMError::ReadSettingsPath)?;
-
-        /* read the config file */
-        let mut settings_path = proj_dirs.config_dir().to_path_buf();
-        settings_path.push(CONFIG_FILE);
+        let cmd_args = CmdArgs::parse();
+        let settings_path = match cmd_args.config_path {
+            Some(p) => PathBuf::from(p),
+            None => {
+                /* try to read the default config path, may seem a bit to OS independent, make it more
+                * difficult to test */
+                // Linux:   /home/Alice/.config/rrm
+                // Windows: C:\Users\Alice\AppData\Roaming\rrm\rrm
+                // macOS:   /Users/Alice/Library/Application Support/ODCA.rrm
+                let proj_dirs = ProjectDirs::from("", "ODCA",  "rrm").ok_or(RRMError::ReadSettingsPath)?;
+                let mut settings_path = proj_dirs.config_dir().to_path_buf();
+                settings_path.push(CONFIG_FILE);
+                settings_path
+            }
+        };
         trace!("Settings file: {}", settings_path.to_string_lossy());
         if !settings_path.is_file() {
             // TODO: have some default settings for this instead
@@ -55,7 +54,6 @@ impl App {
         let settings: Config = toml::from_str(&file_contents).map_err(RRMError::SettingsFileParse)?;
         Ok(App {
             files: Vec::new(),
-            settings_path,
             trash_path: PathBuf::from(settings.trash_path),  // Make this configurable
         })
     }
