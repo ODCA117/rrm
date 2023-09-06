@@ -7,8 +7,8 @@ A more safe alternative to rm. Highly inspired by [rip](https://github.com/nivek
 
 [x] Be able to move files.
 [x] Implement configs.
-[] Store list of previous commands.
-[] Store meta data on removed files.
+[] Database data on removed files.
+[] List of previous commands.
 [] Restore files.
 [] Clear trashbin.
 [] Create UI for file managing.

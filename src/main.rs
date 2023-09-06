@@ -1,5 +1,6 @@
 mod rrm_error;
 mod app;
+mod database;
 
 use app::App;
 use std::{path::PathBuf, fs};
@@ -9,10 +10,12 @@ use rrm_error::RRMError;
 fn main() -> Result<(), RRMError>{
     env_logger::init();
 
-    let app = App::create()?;
+    let mut app = App::create()?;
     app.create_trash()?;
 
+    let _  = &app.test_database()?;
     info!("Move files {:?} to trashbin", &app.files);
+
 
     // If link/dir/file is in a path, it will be move to the root of the trashbin.
     // Path will not be copied.

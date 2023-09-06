@@ -7,11 +7,12 @@ pub enum RRMError {
     #[error("Failed to read settings path")]
     ReadSettingsPath,
 
+    // Can use #[source] instead to handle same source but give different result.
     #[error("IO Error")]
     IOError(#[from] io::Error),
 
-    #[error("No settings file found, will go with default settings")]
-    NoSettingsFileFound,
+    #[error("Could not find file")]
+    FileNotFound,
 
     #[error("Failed to parse settings file")]
     SettingsFileParse(toml::de::Error),
@@ -21,6 +22,9 @@ pub enum RRMError {
 
     #[error("Failed to verify path")]
     TrashNotVerified,
+
+    #[error("Failed to open database")]
+    DBConnection(#[from] rusqlite::Error),
 }
 
 impl Debug for RRMError {
@@ -30,10 +34,3 @@ impl Debug for RRMError {
     }
 }
 
-// impl std::fmt::Display for RRMError {
-//     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-//         match self {
-//             Cmd => writeln!(f, "failed to parse cmd args"),
-//         }
-//     }
-// }
