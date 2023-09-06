@@ -11,8 +11,8 @@ pub enum RRMError {
     #[error("IO Error")]
     IOError(#[from] io::Error),
 
-    #[error("Could not find file")]
-    FileNotFound,
+    #[error("File '{0}' not found")]
+    FileNotFound(String),
 
     #[error("Failed to parse settings file")]
     SettingsFileParse(toml::de::Error),

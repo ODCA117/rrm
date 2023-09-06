@@ -58,10 +58,11 @@ impl App {
                 settings_path
             }
         };
-        trace!("Settings file: {}", settings_path.to_string_lossy());
+        let file_path = settings_path.as_path().display().to_string();
+        trace!("Settings file: {}", file_path);
         if !settings_path.is_file() {
             // TODO: have some default settings for this instead
-            return Err(RRMError::FileNotFound);
+            return Err(RRMError::FileNotFound(file_path));
         }
 
         let file_contents = fs::read_to_string(&settings_path)?;

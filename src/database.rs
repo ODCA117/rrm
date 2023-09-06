@@ -52,7 +52,7 @@ impl FileDB {
     pub fn get(&mut self, name: &String) -> Result<FileEntryDB, RRMError> {
         let mut stmt = self.conn.prepare("SELECT * FROM files WHERE name = ?1")?;
         let mut rows = stmt.query(rusqlite::params![name])?;
-        let row = rows.next()?.ok_or(RRMError::FileNotFound);
+        let row = rows.next()?.ok_or(RRMError::FileNotFound(name.to_owned()))?;
         let fe = FileEntryDB {name: row.get(0)?, origin: row.get(1)?};
         trace!("Got file {}, origin {}", &fe.name, &fe.origin);
         Ok(fe)
