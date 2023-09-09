@@ -15,17 +15,17 @@ const DATABASE: &str = "trashDB.db";
 struct CmdArgs {
     files: Vec<String>,
 
-    #[arg(short, long)]
+    #[arg(short, long, help = "Path to Config file")]
     config_path: Option<String>,
 
-    #[arg(short)]
-    add: Option<String>,
+    #[arg(short, long, help = "List all files in Trash DB")]
+    list: bool,
 
-    #[arg(short)]
-    remove: Option<String>,
+    #[arg(long, help = "Clear all items in Trash and clear trash DB, not reversable")]
+    clear_trash: bool,
 
-    #[arg(short)]
-    get: Option<String>,
+    #[arg(short, long, help = "Restore last removed item")]
+    undo: bool,
 }
 
 pub struct App {
@@ -107,21 +107,11 @@ impl App {
         }
     }
 
-    pub fn test_database(&mut self) -> Result<(), RRMError>{
-        if let Some(name) = &self.cmd_args.add {
-            let file: FileEntryDB = FileEntryDB {name: name.clone(), origin: "test_origin".to_string()};
-            self.file_db.add(file)?;
-        }
-
-        if let Some(name) = &self.cmd_args.get {
-            let file = self.file_db.get(name)?;
-        }
-
-        if let Some(name) = &self.cmd_args.remove {
-            self.file_db.remove(name)?;
-        }
-
-        Ok(())
+    pub fn store_in_db(&self, name: &String) {
+        // Should be fine as we are in this directory
+        let origin = std::env::current_dir().unwrap().as_path().display().to_string();
+        let file_entry_db = FileEntryDB { name: name.clone(), origin };
+        self.file_db.add(file_entry_db);
     }
 }
 
