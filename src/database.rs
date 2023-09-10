@@ -58,6 +58,22 @@ impl FileDB {
         Ok(fe)
     }
 
+    pub fn get_all(&self) -> Result<Vec<FileEntryDB>, RRMError> {
+        let mut file_entries: Vec<FileEntryDB> = Vec::new();
+        let mut stmt = self.conn.prepare("SELECT * FROM files")?;
+        let mut rows = stmt.query(())?;
+        while let Ok(row) = rows.next() {
+            match row {
+                Some(row) => {
+                    let fe = FileEntryDB{name: row.get(0)?, origin: row.get(1)?};
+                    file_entries.push(fe);
+                }
+                None => break,
+            }
+        }
+        Ok(file_entries)
+    }
+
     /// Adapt database to the existing files.
     /// Will remove items not included.
     /// Will add items found, theses will have unknown origin.

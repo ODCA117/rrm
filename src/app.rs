@@ -114,6 +114,10 @@ impl App {
                     exit(0);
                 }
             }
+        } else if self.cmd_args.list {
+            // List all files and their origin in trashbin
+            self.list_trash()?;
+
         } else {
             self.move_to_trash()?;
         }
@@ -123,7 +127,7 @@ impl App {
     fn move_to_trash(&self) -> Result<(), RRMError> {
         for f in self.files.iter() {
             let mut new_path = PathBuf::from(&self.trash_path.clone());
-            let file_name = f.as_path().display().to_string();
+            let file_name = f.as_path().file_name().unwrap().to_string_lossy().to_string();
             if f.is_symlink() {
                 // TODO: Add option to follow symlink to remove file and symlink.
                 // Probably a bug here.
@@ -183,6 +187,24 @@ impl App {
             } else {
                 fs::remove_dir_all(entry.path())?;
             }
+        }
+        Ok(())
+    }
+
+    fn list_trash(&self) -> Result<(), RRMError> {
+        let db_files = self.file_db.get_all()?;
+        let mut dir_files: Vec<String> = Vec::with_capacity(db_files.len());
+
+        for entry in fs::read_dir(&self.trash_path)? {
+            let entry = entry?;
+            dir_files.push(entry.path().file_name().unwrap().to_string_lossy().to_string());
+        }
+
+        let db_files = db_files.iter().filter(|&f| dir_files.contains(&f.name));
+
+        println!("name ->\t\torigin");
+        for e in db_files {
+            println!("{} ->\t\t{}", e.name, e.origin);
         }
         Ok(())
     }
