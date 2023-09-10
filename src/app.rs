@@ -78,8 +78,9 @@ impl App {
 
         let trash_path = PathBuf::from(config.trash_path);
         create_trash(&trash_path)?;
+        let files = cmd_args.files.iter().map(|f| PathBuf::from(f)).collect();
         Ok(App {
-            files: Vec::new(),
+            files,
             trash_path,
             file_db,
             cmd_args,
