@@ -5,7 +5,7 @@ use clap::Parser;
 use directories_next::ProjectDirs;
 use toml;
 use serde::Deserialize;
-use log::trace;
+use log::{trace, error};
 
 const CONFIG_FILE: &str = "rrm_settings.toml";
 const DATABASE: &str = "trashDB.db";
@@ -76,9 +76,11 @@ impl App {
         data_dir.push(DATABASE);
         let file_db = FileDB::new(&data_dir)?;
 
+        let trash_path = PathBuf::from(config.trash_path);
+        create_trash(&trash_path)?;
         Ok(App {
             files: Vec::new(),
-            trash_path: PathBuf::from(config.trash_path),  // Make this configurable
+            trash_path,
             file_db,
             cmd_args,
         })
@@ -87,31 +89,92 @@ impl App {
     /// Creates the trash bin directory if it does not exists
     /// If it exists but is not a directory Error is returned
     /// If it exists and is a directory nothing will be done
-    pub fn create_trash(&self) -> Result<(), RRMError> {
 
-        /* Find out if trash exists or not */
-        match self.trash_path.try_exists() {
-            Err(_) => Err(RRMError::TrashNotVerified),
-            Ok(true) => {
-                if self.trash_path.is_symlink() || self.trash_path.is_file() {
-                    Err(RRMError::TrashNotDir)
-                } else {
-                    Ok(())
-                }
-            },
-            Ok(false) => {
-                trace!("Trash does not exists, create trashbin");
-                fs::create_dir_all(&self.trash_path)?;
-                Ok(())
-            },
-        }
+    pub fn execute(&self) -> Result<(), RRMError> {
+        self.move_to_trash()?;
+        Ok(())
     }
 
-    pub fn store_in_db(&self, name: &String) {
+    fn move_to_trash(&self) -> Result<(), RRMError> {
+        for f in self.files.iter() {
+            let mut new_path = PathBuf::from(&self.trash_path.clone());
+            let file_name = f.as_path().display().to_string();
+            if f.is_symlink() {
+                // TODO: Add option to follow symlink to remove file and symlink.
+                // Probably a bug here.
+                trace!("symling: {:?}", file_name);
+
+                // Current behvaior, Removes the link which will breake it
+                // If the file which the link is linking to also is removed and keep the same
+                // relative path from the link the link will still work.
+                new_path.push(&file_name);
+                let res = fs::rename(f, new_path);
+                match res {
+                    Ok(_) => {
+                        trace!("Moved symlink");
+                        self.store_in_db(&file_name)?;
+                    }
+                    Err(e) => error!("{}", e.to_string()),
+                }
+            } else if f.is_dir() {
+                // Will move the entire directory and everything in the directory
+                // Paths will be kept.
+                trace!("dir: {:?}", file_name);
+                new_path.push(&file_name);
+                let res = fs::rename(f, new_path);
+                match res {
+                    Ok(_) => {
+                        trace!("Moved directory");
+                        // add file to database
+                        self.store_in_db(&file_name)?;
+                    }
+                    Err(e) => error!("{}", e.to_string()),
+                }
+            } else if f.is_file() {
+                // Will move the file,
+                trace!("file: {:?}", file_name);
+                new_path.push(&file_name);
+
+                let res = fs::rename(f, new_path);
+                match res {
+                    Ok(_) => {
+                        trace!("Moved file");
+                        self.store_in_db(&file_name)?;
+                    }
+                    Err(e) => error!("{}", e.to_string()),
+                }
+            } else {
+                error!("The path is not pointing to anythin");
+            }
+        }
+        Ok(())
+    }
+
+    fn store_in_db(&self, name: &String) -> Result<(), RRMError> {
         // Should be fine as we are in this directory
         let origin = std::env::current_dir().unwrap().as_path().display().to_string();
         let file_entry_db = FileEntryDB { name: name.clone(), origin };
-        self.file_db.add(file_entry_db);
+        self.file_db.add(file_entry_db)?;
+        Ok(())
+    }
+}
+
+fn create_trash(trash_path: &PathBuf) -> Result<(), RRMError> {
+    /* Find out if trash exists or not */
+    match trash_path.try_exists() {
+        Err(_) => Err(RRMError::TrashNotVerified),
+        Ok(true) => {
+            if trash_path.is_symlink() || trash_path.is_file() {
+                Err(RRMError::TrashNotDir)
+            } else {
+                Ok(())
+            }
+        },
+        Ok(false) => {
+            trace!("Trash does not exists, create trashbin");
+            fs::create_dir_all(trash_path)?;
+            Ok(())
+        },
     }
 }
 
