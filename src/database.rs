@@ -1,7 +1,7 @@
 use crate::rrm_error::RRMError;
 use std::path::PathBuf;
 
-use log::{trace, info};
+use log::{trace, error};
 use rusqlite::{Connection, Result};
 
 pub struct FileDB {
@@ -63,5 +63,12 @@ impl FileDB {
     /// Will add items found, theses will have unknown origin.
     pub fn update(&mut self, files: Vec<FileEntryDB>) -> Result<(), RRMError> {
         todo!();
+    }
+
+    pub fn clear_db(&self) {
+        match self.conn.execute("DELETE FROM files", ()) {
+            Ok(n) => trace!("Cleared DB of {} rows", n),
+            Err(_)  => error!("Failed to remove from db"),
+        }
     }
 }

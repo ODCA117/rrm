@@ -1,13 +1,15 @@
 use crate::{rrm_error::RRMError, database::FileEntryDB};
 use crate::database::FileDB;
+use std::process::exit;
 use std::{path::PathBuf, fs};
 use clap::Parser;
 use directories_next::ProjectDirs;
 use toml;
 use serde::Deserialize;
-use log::{trace, error};
+use log::{trace, info, error};
 
 const CONFIG_FILE: &str = "rrm_settings.toml";
+const TRASH_PATH: &str = "/tmp/rrm/trash";
 const DATABASE: &str = "trashDB.db";
 
 #[derive(Parser, Clone)]
@@ -58,18 +60,22 @@ impl App {
                 settings_path
             }
         };
-        let file_path = settings_path.as_path().display().to_string();
-        trace!("Settings file: {}", file_path);
-        if !settings_path.is_file() {
-            // TODO: have some default settings for this instead
-            return Err(RRMError::FileNotFound(file_path));
-        }
 
-        let file_contents = fs::read_to_string(&settings_path)?;
-        trace!("Config file content: {}", &file_contents);
-        let config: Config = toml::from_str(&file_contents).map_err(RRMError::SettingsFileParse)?;
+        let config: Config = if settings_path.exists() {
+            let file_path = settings_path.as_path().display().to_string();
+            trace!("Settings file: {}", file_path);
+            if !settings_path.is_file() {
+                // TODO: have some default settings for this instead
+                return Err(RRMError::FileNotFound(file_path));
+            }
+
+            let file_contents = fs::read_to_string(&settings_path)?;
+            toml::from_str(&file_contents).map_err(RRMError::SettingsFileParse)?
+        } else {
+            Config {trash_path: String::from(TRASH_PATH) }
+        };
+
         trace!("trash path: {}", &config.trash_path);
-
         let mut data_dir = proj_dirs.data_dir().to_path_buf();
         trace!("Data dir: {}", data_dir.to_string_lossy());
         fs::create_dir_all(&data_dir)?;
@@ -92,7 +98,25 @@ impl App {
     /// If it exists and is a directory nothing will be done
 
     pub fn execute(&self) -> Result<(), RRMError> {
-        self.move_to_trash()?;
+        if self.cmd_args.clear_trash {
+            // Clear everything it trash dir and DB
+            let mut confirm = String::new();
+            println!("Do you really want to clear the trash bin? 'y|n' (Cannot undo this)");
+            std::io::stdin().read_line(&mut confirm)?;
+            match confirm.to_lowercase().as_str() {
+                "y\n" | "yes\n" => {
+                    println!("Will clear trash bin");
+                    self.permanenent_delete()?;
+                    self.file_db.clear_db();
+                }
+                _ => {
+                    println!("Will not clear trash bin");
+                    exit(0);
+                }
+            }
+        } else {
+            self.move_to_trash()?;
+        }
         Ok(())
     }
 
@@ -146,6 +170,18 @@ impl App {
                 }
             } else {
                 error!("The path is not pointing to anythin");
+            }
+        }
+        Ok(())
+    }
+
+    fn permanenent_delete(&self) -> Result<(), RRMError> {
+        for entry in fs::read_dir(&self.trash_path)? {
+            let entry = entry?;
+            if entry.path().is_symlink() || entry.path().is_file() {
+                fs::remove_file(entry.path())?;
+            } else {
+                fs::remove_dir_all(entry.path())?;
             }
         }
         Ok(())
