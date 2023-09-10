@@ -5,11 +5,12 @@ A more safe alternative to rm. Highly inspired by [rip](https://github.com/nivek
 
 ## Todo
 
-[x] Be able to move files.
-[x] Implement configs.
-[] Database data on removed files.
-[] List of previous commands.
-[] Restore files.
-[] Clear trashbin.
-[] Create UI for file managing.
+[x] Be able to move files.  
+[x] Implement configs.  
+[x] Database data on removed files.  
+[x] Clear trashbin.  
+[x] List files in trashbin.  
+[] List of previous commands.  
+[] Restore files.  
+[] Create UI for file managing.  
 
